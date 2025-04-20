@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatSync - Real-time Messaging</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #5c6bc0;
+      --primary-dark: #3949ab;
+      --primary-light: #8e99f3;
+      --secondary: #26a69a;
+      --text-light: #ffffff;
+      --text-dark: #263238;
+      --text-muted: #78909c;
+      --background: #f5f7fa;
+      --card-bg: #ffffff;
+      --border: #e1e5eb;
+      --success: #66bb6a;
+      --warning: #ffa726;
+      --error: #ef5350;
+      --gray-100: #f8f9fa;
+      --gray-200: #e9ecef;
+      --gray-300: #dee2e6;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--background);
+      color: var(--text-dark);
+      line-height: 1.6;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      max-width: 1400px;
+      margin: 0 auto;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      width: 280px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .logo span {
+      color: var(--primary-light);
+    }
+
+    .status-panel {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      margin: 0 20px 20px;
+      padding: 15px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .status-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-connected {
+      background-color: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+
+    .status-disconnected {
+      background-color: var(--error);
+      box-shadow: 0 0 10px var(--error);
+    }
+
+    .status-connecting {
+      background-color: var(--warning);
+      box-shadow: 0 0 10px var(--warning);
+    }
+
+    .user-list {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 0 20px;
+    }
+
+    .user-list-header {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .user-count {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 12px;
+    }
+
+    .user-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, var(--primary-light), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .profile {
+      display: flex;
+      align-items: center;
+      padding: 15px 20px;
+      gap: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .profile .user-avatar {
+      width: 40px;
+      height: 40px;
+      font-size: 16px;
+    }
+
+    .profile .user-name {
+      font-weight: 600;
+    }
+
+    .chat-container {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--card-bg);
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 30px;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      height: 70px;
+    }
+
+    .chat-title {
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .chat-messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 20px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background: var(--background);
+    }
+
+    .message {
+      display: flex;
+      flex-direction: column;
+      max-width: 70%;
+    }
+
+    .message-bubble {
+      padding: 12px 16px;
+      border-radius: 16px;
+      position: relative;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .message.incoming {
+      align-self: flex-start;
+    }
+
+    .message.outgoing {
+      align-self: flex-end;
+    }
+
+    .message.system {
+      align-self: center;
+      max-width: 90%;
+    }
+
+    .message.incoming .message-bubble {
+      background: var(--card-bg);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.outgoing .message-bubble {
+      background: var(--primary);
+      color: var(--text-light);
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.system .message-bubble {
+      background: var(--gray-200);
+      color: var(--text-muted);
+      font-style: italic;
+      border-radius: 10px;
+    }
+
+    .sender-name {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--primary);
+    }
+
+    .message.outgoing .sender-name {
+      display: none;
+    }
+
+    .message-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 5px;
+      align-self: flex-end;
+    }
+
+    .message.outgoing .message-time {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .chat-input {
+      padding: 20px 30px;
+      border-top: 1px solid var(--border);
+      background: var(--card-bg);
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 10px;
+      position: relative;
+    }
+
+    .input-field {
+      flex-grow: 1;
+      padding: 12px 15px;
+      padding-right: 50px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(92, 107, 192, 0.2);
+    }
+
+    .send-button {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 22px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .send-button:hover {
+      background: var(--primary-dark);
+    }
+
+    .send-button:disabled {
+      background: var(--gray-300);
+      cursor: not-allowed;
+    }
+
+    .send-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .typing-indicator {
+      position: absolute;
+      bottom: 60px;
+      left: 30px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 5px 10px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .typing-indicator.active {
+      opacity: 1;
+    }
+
+    /* Animation for messages */
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message {
+      animation: slideIn 0.3s ease forwards;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .app-container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: 200px;
+        overflow-y: auto;
+      }
+
+      .user-list {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding: 10px 20px;
+        gap: 10px;
+      }
+
+      .user-item {
+        flex-direction: column;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 10px;
+        min-width: 80px;
+        align-items: center;
+      }
+
+      .message {
+        max-width: 85%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">Chat<span>Sync</span></div>
+      </div>
+      
+      <div class="status-panel">
+        <div class="status-item">
+          <div class="status-indicator status-connecting" id="backend-status"></div>
+          <span id="backend-status-text">Connecting to Backend...</span>
+        </div>
+        <div class="status-item">
+          <div class="status-indicator status-connecting" id="db-status"></div>
+          <span id="db-status-text">Checking Database...</span>
+        </div>
+      </div>
+      
+      <div class="user-list">
+        <div class="user-list-header">
+          Active Users <span class="user-count" id="user-count">0</span>
+        </div>
+        <div id="users-container">
+          <!-- User list will be populated here -->
+        </div>
+      </div>
+      
+      <div class="profile">
+        <div class="user-avatar" id="my-avatar"></div>
+        <div class="user-info">
+          <div class="user-name" id="my-username">Connecting...</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chat-container">
+      <div class="chat-header">
+        <div class="chat-title">Public Chat Room</div>
+      </div>
+      
+      <div class="chat-messages" id="messages">
+        <!-- Messages will be displayed here -->
+      </div>
+      
+      <div class="typing-indicator" id="typing-indicator">
+        Someone is typing...
+      </div>
+      
+      <div class="chat-input">
+        <div class="input-wrapper">
+          <input type="text" class="input-field" id="message-input" placeholder="Type a message..." disabled>
+          <button class="send-button" id="send-button" disabled>
+            <svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <script>
+    // DOM Elements
+    const messagesContainer = document.getElementById('messages');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const userCount = document.getElementById('user-count');
+    const usersContainer = document.getElementById('users-container');
+    const myUsername = document.getElementById('my-username');
+    const myAvatar = document.getElementById('my-avatar');
+    const backendStatus = document.getElementById('backend-status');
+    const backendStatusText = document.getElementById('backend-status-text');
+    const dbStatus = document.getElementById('db-status');
+    const dbStatusText = document.getElementById('db-status-text');
+    const typingIndicator = document.getElementById('typing-indicator');
+    
+    // Connection and state variables
+    const socket = io();
+    let userName = "";
+    let userColor = "";
+    let users = [];
+    let isTyping = false;
+    let typingTimeout;
+    
+    // Random color generator for user avatars
+    function getRandomColor() {
+      const colors = [
+        '#5c6bc0', '#7986cb', '#3949ab', '#3f51b5',
+        '#5c6bc0', '#26a69a', '#66bb6a', '#42a5f5',
+        '#29b6f6', '#26c6da', '#ec407a', '#ef5350'
+      ];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    // Generate user avatar from username initials
+    function generateAvatar(name) {
+      if (!name) return '';
+      const nameParts = name.split(/[-\s]/);
+      if (nameParts.length > 1) {
+        return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    }
+    
+    // Update connection status UI
+    function updateConnectionStatus(element, textElement, status, message) {
+      element.className = 'status-indicator';
+      element.classList.add(`status-${status}`);
+      textElement.textContent = message;
+    }
+    
+    // Format timestamp
+    function formatTime(timestamp) {
+      const date = new Date(timestamp || Date.now());
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Display a message in the chat
+    function displayMessage(data) {
+      const messageElement = document.createElement('div');
+      const isMe = data.sender === userName;
+      const isSystem = data.sender === 'System';
+      
+      messageElement.classList.add('message');
+      messageElement.classList.add(isMe ? 'outgoing' : isSystem ? 'system' : 'incoming');
+      
+      const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+      
+      let messageContent = `
+        <div class="message-bubble">
+          ${!isMe && !isSystem ? `<div class="sender-name">${escapeHtml(data.sender)}</div>` : ''}
+          <div class="message-text">${escapeHtml(data.message)}</div>
+        </div>
+        <div class="message-time">${formatTime(timestamp)}</div>
+      `;
+      
+      messageElement.innerHTML = messageContent;
+      messagesContainer.appendChild(messageElement);
+      scrollToBottom();
+    }
+    
+    // Update user list in the sidebar
+    function updateUserList() {
+      usersContainer.innerHTML = '';
+      
+      users.forEach(user => {
+        const userElement = document.createElement('div');
+        userElement.classList.add('user-item');
+        
+        userElement.innerHTML = `
+          <div class="user-avatar" style="background: ${user.color || getRandomColor()}">${generateAvatar(user.name)}</div>
+          <div class="user-name">${escapeHtml(user.name)}</div>
+        `;
+        
+        usersContainer.appendChild(userElement);
+      });
+    }
+    
+    // Enable chat input
+    function enableChat() {
+      messageInput.disabled = false;
+      messageInput.focus();
+      sendButton.disabled = true;
+    }
+    
+    // Disable chat input
+    function disableChat() {
+      messageInput.disabled = true;
+      sendButton.disabled = true;
+    }
+    
+    // Send a message
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (message) {
+        socket.emit('send_message', { sender: userName, message });
+        messageInput.value = '';
+        sendButton.disabled = true;
+        
+        // Reset typing indicator
+        clearTimeout(typingTimeout);
+        isTyping = false;
+        socket.emit('stop_typing');
+      }
+    }
+    
+    // Scroll chat to bottom
+    function scrollToBottom() {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // Escape HTML to prevent XSS
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Socket event listeners
+    socket.on('connect', () => {
+      updateConnectionStatus(backendStatus, backendStatusText, 'connected', 'Connected to Server');
+      enableChat();
+    });
+    
+    socket.on('disconnect', () => {
+      updateConnectionStatus(backendStatus, backendStatusText, 'disconnected', 'Disconnected from Server');
+      disableChat();
+    });
+    
+    socket.on('db_status', (status) => {
+      updateConnectionStatus(dbStatus, dbStatusText, status ? 'connected' : 'disconnected', 
+        status ? 'Database Connected' : 'Database Disconnected');
+    });
+    
+    socket.on('user_name', (name) => {
+      userName = name;
+      userColor = getRandomColor();
+      myUsername.textContent = userName;
+      myAvatar.textContent = generateAvatar(userName);
+      myAvatar.style.background = userColor;
+    });
+    
+    socket.on('receive_message', (data) => {
+      displayMessage(data);
+    });
+    
+    socket.on('previous_messages', (messages) => {
+      messagesContainer.innerHTML = '';
+      messages.forEach(msg => {
+        displayMessage(msg);
+      });
+      scrollToBottom();
+    });
+    
+    socket.on('users_list', (usersList) => {
+      users = usersList;
+      updateUserList();
+    });
+    
+    socket.on('client_count', (count) => {
+      userCount.textContent = count;
+    });
+    
+    socket.on('user_typing', (user) => {
+      if (user !== userName) {
+        typingIndicator.textContent = `${user} is typing...`;
+        typingIndicator.classList.add('active');
+        
+        setTimeout(() => {
+          typingIndicator.classList.remove('active');
+        }, 3000);
+      }
+    });
+    
+    socket.on('user_stop_typing', () => {
+      typingIndicator.classList.remove('active');
+    });
+    
+    // Event Listeners
+    sendButton.addEventListener('click', sendMessage);
+    
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+    
+    messageInput.addEventListener('input', () => {
+      sendButton.disabled = messageInput.value.trim() === '';
+      
+      // Handle typing indicator
+      if (!isTyping && messageInput.value.trim() !== '') {
+        isTyping = true;
+        socket.emit('typing');
+      }
+      
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        if (isTyping) {
+          isTyping = false;
+          socket.emit('stop_typing');
+        }
+      }, 2000);
+    });
+
+    // Initialize
+    socket.emit('join_chat');
+  </script>
+</body>
+</html>

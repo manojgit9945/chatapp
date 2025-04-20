@@ -1,223 +1,252 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const http = require('http');
-const socketIo = require('socket.io');
-const cors = require('cors');
-require('dotenv').config();
+const { Server } = require('socket.io');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const path = require('path');
 
+// Load environment variables
+dotenv.config();
+
+// Initialize Express app
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-    cors: {
-        origin: process.env.CLIENT_URL || '*',
-        methods: ['GET', 'POST', 'DELETE', 'PUT'],
-        allowedHeaders: ['Content-Type']
-    }
+
+// Configure socket.io with CORS
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
 });
 
-const port = process.env.PORT || 3000;
-const mongoURI = process.env.MONGO_URI;
+// MongoDB connection string
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://manojgithub1234:vkBFq6SQ5kultevI@cluster0.b5nih9m.mongodb.net/chatdb?retryWrites=true&w=majority&appName=Cluster0';
+
+// Database connection state
+let isDbConnected = false;
 
 // Connect to MongoDB
-mongoose.connect(mongoURI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 })
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.error('MongoDB connection error:', err));
-
-// Define schema and model for messages
-const messageSchema = new mongoose.Schema({
-    sender: { type: String, required: true },
-    receiver: { type: String, required: true },
-    content: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now },
-    isDeleted: { type: Boolean, default: false },
-    edited: { type: Boolean, default: false }
+.then(() => {
+  console.log('✅ MongoDB Connected');
+  isDbConnected = true;
+})
+.catch(err => {
+  console.error('❌ MongoDB connection error:', err);
+  isDbConnected = false;
 });
 
+// Monitor database connection
+mongoose.connection.on('connected', () => {
+  isDbConnected = true;
+  io.emit('db_status', true);
+  console.log('MongoDB connection established');
+});
+
+mongoose.connection.on('disconnected', () => {
+  isDbConnected = false;
+  io.emit('db_status', false);
+  console.log('MongoDB connection lost');
+});
+
+mongoose.connection.on('error', (err) => {
+  isDbConnected = false;
+  io.emit('db_status', false);
+  console.error('MongoDB connection error:', err);
+});
+
+// Define Message Schema
+const messageSchema = new mongoose.Schema({
+  sender: { type: String, required: true },
+  message: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now }
+});
+
+// Create Message model
 const Message = mongoose.model('Message', messageSchema);
 
-// Define schema for active users (for better handling of typing indicators)
-const activeUsersSchema = new mongoose.Schema({
-    userId: { type: String, required: true, unique: true },
-    socketId: { type: String, required: true },
-    lastActive: { type: Date, default: Date.now }
+// Serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve the index.html file for the root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
-const ActiveUser = mongoose.model('ActiveUser', activeUsersSchema);
+// Track connected clients
+let clients = [];
 
-// Middleware
-app.use(express.json());
-app.use(cors({
-    origin: process.env.CLIENT_URL || '*',
-    methods: ['GET', 'POST', 'DELETE', 'PUT'],
-    allowedHeaders: ['Content-Type']
-}));
-app.use(express.static('public'));
-
-// Helper function to emit error
-function emitError(socket, error) {
-    console.error('Error:', error);
-    socket.emit('error', { message: 'An error occurred', details: error.message });
+// Generate a random username
+function generateUsername() {
+  const adjectives = ['Happy', 'Clever', 'Brave', 'Swift', 'Gentle', 'Witty', 'Calm', 'Bright', 'Kind'];
+  const nouns = ['Panda', 'Tiger', 'Turtle', 'Eagle', 'Dolphin', 'Wolf', 'Fox', 'Bear', 'Lion'];
+  
+  const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+  const randomNumber = Math.floor(Math.random() * 100);
+  
+  return `${randomAdjective}${randomNoun}${randomNumber}`;
 }
 
-// Basic route for checking server status
-app.get('/', (req, res) => {
-    res.send('Chat server is running');
-});
+// Send updated user list to all clients
+function broadcastUserList() {
+  io.emit('users_list', clients.map(client => ({
+    id: client.id,
+    name: client.name,
+    color: client.color
+  })));
+}
 
-// API route to get messages
-app.get('/api/messages', async (req, res) => {
-    try {
-        const { sender, receiver } = req.query;
-        const query = {};
-        
-        if (sender) query.sender = sender;
-        if (receiver) query.receiver = receiver;
-        
-        const messages = await Message.find(query).sort({ timestamp: 1 });
-        res.json(messages);
-    } catch (err) {
-        console.error('Error fetching messages:', err);
-        res.status(500).json({ message: 'Server error', details: err.message });
-    }
-});
-
-// WebSocket connection handling
+// Socket.IO connection handling
 io.on('connection', async (socket) => {
-    console.log('New client connected:', socket.id);
-
-    // Handle user identification
-    socket.on('identify', async (userId) => {
+  try {
+    // Generate a unique username and random color for the client
+    const userName = generateUsername();
+    const userColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+    
+    // Add client to list
+    clients.push({ 
+      id: socket.id, 
+      name: userName,
+      color: userColor
+    });
+    
+    // Emit database connection status to the client
+    socket.emit('db_status', isDbConnected);
+    
+    // Emit the username to the client
+    socket.emit('user_name', userName);
+    
+    // Update client count for all users
+    io.emit('client_count', clients.length);
+    
+    // Send updated user list to all clients
+    broadcastUserList();
+    
+    // Handle client joining the chat
+    socket.on('join_chat', async () => {
+      // Send system message about new user
+      const joinMessage = {
+        sender: 'System',
+        message: `${userName} has joined the chat.`,
+        timestamp: new Date()
+      };
+      
+      // Save the system message if database is connected
+      if (isDbConnected) {
         try {
-            // Store active user
-            await ActiveUser.findOneAndUpdate(
-                { userId },
-                { userId, socketId: socket.id, lastActive: new Date() },
-                { upsert: true, new: true }
-            );
-
-            // Get user's conversations
-            const messages = await Message.find({
-                $or: [
-                    { sender: userId },
-                    { receiver: userId }
-                ],
-                isDeleted: false
-            }).sort({ timestamp: 1 });
-
-            socket.emit('previousMessages', messages);
-            console.log(`User ${userId} identified`);
+          await new Message(joinMessage).save();
         } catch (err) {
-            emitError(socket, err);
+          console.error('Error saving join message:', err);
         }
-    });
-
-    // Handle sending messages
-    socket.on('sendMessage', async (data) => {
+      }
+      
+      // Broadcast to all clients
+      io.emit('receive_message', joinMessage);
+      
+      // Send previous messages to the new client
+      if (isDbConnected) {
         try {
-            const { sender, receiver, content } = data;
-            const message = new Message({ sender, receiver, content });
-            await message.save();
-
-            io.emit('receiveMessage', message);
-            console.log(`Message sent from ${sender} to ${receiver}`);
+          const previousMessages = await Message.find()
+            .sort({ timestamp: 1 })
+            .limit(50)
+            .lean();
+          
+          socket.emit('previous_messages', previousMessages);
         } catch (err) {
-            emitError(socket, err);
+          console.error('Error fetching previous messages:', err);
+          socket.emit('previous_messages', []);
         }
+      } else {
+        socket.emit('previous_messages', []);
+      }
     });
-
-    // Handle deleting messages
-    socket.on('deleteMessage', async (messageId) => {
-        try {
-            const message = await Message.findById(messageId);
-            if (!message) {
-                return socket.emit('error', { message: 'Message not found' });
-            }
-
-            message.isDeleted = true;
-            message.content = 'This message was deleted';
-            await message.save();
-
-            io.emit('messageDeleted', messageId);
-            console.log(`Message ${messageId} marked as deleted`);
-        } catch (err) {
-            emitError(socket, err);
+    
+    // Handle message from client
+    socket.on('send_message', async (data) => {
+      try {
+        const messageData = {
+          sender: data.sender,
+          message: data.message,
+          timestamp: new Date()
+        };
+        
+        // Create and save the new message if database is connected
+        if (isDbConnected) {
+          const newMessage = new Message(messageData);
+          await newMessage.save();
         }
+        
+        // Broadcast the message to all clients
+        io.emit('receive_message', messageData);
+      } catch (err) {
+        console.error('Error saving message:', err);
+        socket.emit('error', { message: 'Failed to send message' });
+      }
     });
-
-    // Handle editing messages
-    socket.on('editMessage', async (data) => {
-        try {
-            const { messageId, newContent } = data;
-            const message = await Message.findById(messageId);
-            if (!message) {
-                return socket.emit('error', { message: 'Message not found' });
-            }
-
-            message.content = newContent;
-            message.edited = true;
-            await message.save();
-
-            io.emit('messageEdited', { messageId, newContent });
-            console.log(`Message ${messageId} edited`);
-        } catch (err) {
-            emitError(socket, err);
-        }
+    
+    // Handle typing indicator
+    socket.on('typing', () => {
+      socket.broadcast.emit('user_typing', userName);
     });
-
-    // Handle typing indicators
-    socket.on('typing', (userId) => {
-        socket.broadcast.emit('typing', userId);
+    
+    socket.on('stop_typing', () => {
+      socket.broadcast.emit('user_stop_typing');
     });
-
-    socket.on('stopTyping', () => {
-        socket.broadcast.emit('stopTyping');
-    });
-
-    // Handle disconnection
+    
+    // Handle client disconnect
     socket.on('disconnect', async () => {
-        try {
-            // Find user by socket ID and remove from active users
-            await ActiveUser.findOneAndDelete({ socketId: socket.id });
-            console.log('Client disconnected:', socket.id);
-        } catch (err) {
-            console.error('Error handling disconnect:', err);
+      // Find and remove the client from our list
+      const index = clients.findIndex(client => client.id === socket.id);
+      if (index !== -1) {
+        const disconnectedUser = clients[index];
+        clients.splice(index, 1);
+        
+        // Update client count
+        io.emit('client_count', clients.length);
+        
+        // Update user list
+        broadcastUserList();
+        
+        // Send system message about user leaving
+        const leaveMessage = {
+          sender: 'System',
+          message: `${disconnectedUser.name} has left the chat.`,
+          timestamp: new Date()
+        };
+        
+        // Save the message if database is connected
+        if (isDbConnected) {
+          try {
+            await new Message(leaveMessage).save();
+          } catch (err) {
+            console.error('Error saving disconnect message:', err);
+          }
         }
+        
+        io.emit('receive_message', leaveMessage);
+      }
     });
+  } catch (err) {
+    console.error('Socket connection error:', err);
+  }
 });
 
-// Cleanup inactive users periodically (every 10 minutes)
-setInterval(async () => {
-    try {
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-        await ActiveUser.deleteMany({ lastActive: { $lt: tenMinutesAgo } });
-        console.log('Cleaned up inactive users');
-    } catch (err) {
-        console.error('Error cleaning up inactive users:', err);
-    }
-}, 10 * 60 * 1000);
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    server: 'online',
+    database: isDbConnected ? 'connected' : 'disconnected',
+    clients: clients.length
+  });
 });
 
 // Start the server
-server.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
-
-// Handle graceful shutdown
-process.on('SIGTERM', async () => {
-    console.log('SIGTERM received, shutting down gracefully');
-    server.close(() => {
-        console.log('Server closed');
-        mongoose.connection.close(false, () => {
-            console.log('MongoDB connection closed');
-            process.exit(0);
-        });
-    });
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`✨ Server running on http://localhost:${PORT}`);
 });
