@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChatSync - Real-time Messaging</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -24,10 +24,6 @@
       --gray-200: #e9ecef;
       --gray-300: #dee2e6;
       --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      --safe-area-inset-top: env(safe-area-inset-top);
-      --safe-area-inset-bottom: env(safe-area-inset-bottom);
-      --safe-area-inset-left: env(safe-area-inset-left);
-      --safe-area-inset-right: env(safe-area-inset-right);
     }
 
     * {
@@ -42,66 +38,34 @@
       color: var(--text-dark);
       line-height: 1.6;
       height: 100vh;
-      height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
-      width: 100vw;
-      width: calc(100vw - var(--safe-area-inset-left) - var(--safe-area-inset-right));
       overflow: hidden;
-      touch-action: manipulation;
-      -webkit-overflow-scrolling: touch;
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
 
     .app-container {
       display: flex;
-      flex-direction: column;
-      height: 100%;
-      max-width: 100%;
+      height: 100vh;
+      max-width: 1400px;
       margin: 0 auto;
       box-shadow: var(--shadow);
-      position: relative;
     }
 
     .sidebar {
+      width: 280px;
       background: linear-gradient(135deg, var(--primary), var(--primary-dark));
       color: var(--text-light);
       display: flex;
       flex-direction: column;
-      height: auto;
-      max-height: 100%;
-      overflow-y: auto;
-      z-index: 10;
-      transition: transform 0.3s ease, height 0.3s ease;
-    }
-
-    .sidebar-collapsed {
-      height: 60px;
-      overflow: hidden;
     }
 
     .sidebar-header {
-      padding: 12px 15px;
+      padding: 20px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
       gap: 10px;
     }
 
-    .toggle-sidebar {
-      background: transparent;
-      border: none;
-      color: var(--text-light);
-      font-size: 20px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      padding: 0;
-    }
-
     .logo {
-      font-size: 20px;
+      font-size: 24px;
       font-weight: 700;
     }
 
@@ -112,16 +76,16 @@
     .status-panel {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 12px;
-      margin: 0 15px 15px;
-      padding: 12px;
+      margin: 0 20px 20px;
+      padding: 15px;
     }
 
     .status-item {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 8px;
-      font-size: 13px;
+      margin-bottom: 10px;
+      font-size: 14px;
     }
 
     .status-item:last-child {
@@ -129,36 +93,37 @@
     }
 
     .status-indicator {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       flex-shrink: 0;
     }
 
     .status-connected {
       background-color: var(--success);
-      box-shadow: 0 0 8px var(--success);
+      box-shadow: 0 0 10px var(--success);
     }
 
     .status-disconnected {
       background-color: var(--error);
-      box-shadow: 0 0 8px var(--error);
+      box-shadow: 0 0 10px var(--error);
     }
 
     .status-connecting {
       background-color: var(--warning);
-      box-shadow: 0 0 8px var(--warning);
+      box-shadow: 0 0 10px var(--warning);
     }
 
     .user-list {
+      flex-grow: 1;
       overflow-y: auto;
-      padding: 0 15px 15px;
+      padding: 0 20px;
     }
 
     .user-list-header {
       font-size: 14px;
       font-weight: 600;
-      margin-bottom: 12px;
+      margin-bottom: 15px;
       display: flex;
       align-items: center;
       gap: 5px;
@@ -175,7 +140,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 0;
+      padding: 10px 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
@@ -194,21 +159,19 @@
     .profile {
       display: flex;
       align-items: center;
-      padding: 12px 15px;
+      padding: 15px 20px;
       gap: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
-      margin-top: auto;
     }
 
     .profile .user-avatar {
-      width: 36px;
-      height: 36px;
-      font-size: 15px;
+      width: 40px;
+      height: 40px;
+      font-size: 16px;
     }
 
     .profile .user-name {
       font-weight: 600;
-      font-size: 14px;
     }
 
     .chat-container {
@@ -216,48 +179,44 @@
       display: flex;
       flex-direction: column;
       background: var(--card-bg);
-      height: 0;
-      overflow: hidden;
     }
 
     .chat-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 15px;
+      padding: 15px 30px;
       background: var(--card-bg);
       border-bottom: 1px solid var(--border);
-      height: 60px;
+      height: 70px;
     }
 
     .chat-title {
       font-weight: 600;
-      font-size: 16px;
+      font-size: 18px;
     }
 
     .chat-messages {
       flex-grow: 1;
       overflow-y: auto;
-      padding: 15px;
+      padding: 20px 30px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 15px;
       background: var(--background);
-      -webkit-overflow-scrolling: touch;
     }
 
     .message {
       display: flex;
       flex-direction: column;
-      max-width: 85%;
+      max-width: 70%;
     }
 
     .message-bubble {
-      padding: 10px 14px;
+      padding: 12px 16px;
       border-radius: 16px;
       position: relative;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-      word-break: break-word;
     }
 
     .message.incoming {
@@ -292,9 +251,9 @@
     }
 
     .sender-name {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      margin-bottom: 3px;
+      margin-bottom: 4px;
       color: var(--primary);
     }
 
@@ -303,9 +262,9 @@
     }
 
     .message-time {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-muted);
-      margin-top: 4px;
+      margin-top: 5px;
       align-self: flex-end;
     }
 
@@ -314,28 +273,26 @@
     }
 
     .chat-input {
-      padding: 12px 15px;
+      padding: 20px 30px;
       border-top: 1px solid var(--border);
       background: var(--card-bg);
-      padding-bottom: calc(15px + var(--safe-area-inset-bottom));
     }
 
     .input-wrapper {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       position: relative;
     }
 
     .input-field {
       flex-grow: 1;
       padding: 12px 15px;
-      padding-right: 40px;
+      padding-right: 50px;
       border: 1px solid var(--border);
       border-radius: 24px;
-      font-size: 14px;
+      font-size: 15px;
       outline: none;
       transition: all 0.2s ease;
-      appearance: none;
     }
 
     .input-field:focus {
@@ -344,19 +301,17 @@
     }
 
     .send-button {
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: var(--primary);
       color: white;
       border: none;
-      border-radius: 20px;
+      border-radius: 22px;
       cursor: pointer;
       transition: all 0.2s ease;
-      flex-shrink: 0;
-      -webkit-tap-highlight-color: transparent;
     }
 
     .send-button:hover {
@@ -369,14 +324,14 @@
     }
 
     .send-icon {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
     }
 
     .typing-indicator {
       position: absolute;
       bottom: 60px;
-      left: 15px;
+      left: 30px;
       font-size: 12px;
       color: var(--text-muted);
       padding: 5px 10px;
@@ -385,7 +340,6 @@
       box-shadow: var(--shadow);
       opacity: 0;
       transition: opacity 0.3s ease;
-      z-index: 5;
     }
 
     .typing-indicator.active {
@@ -396,7 +350,7 @@
     @keyframes slideIn {
       from {
         opacity: 0;
-        transform: translateY(15px);
+        transform: translateY(20px);
       }
       to {
         opacity: 1;
@@ -408,92 +362,46 @@
       animation: slideIn 0.3s ease forwards;
     }
 
-    /* Mobile-specific optimizations */
+    /* Responsive design */
     @media (max-width: 768px) {
       .app-container {
-        height: 100%;
-        width: 100%;
+        flex-direction: column;
       }
 
       .sidebar {
-        position: relative;
-        transition: height 0.3s ease-in-out;
-      }
-
-      .sidebar.sidebar-collapsed {
-        height: 60px;
-      }
-
-      .sidebar.expanded {
-        height: auto;
-        max-height: 80vh;
+        width: 100%;
+        height: 200px;
         overflow-y: auto;
       }
 
-      .users-horizontal-scroll {
+      .user-list {
         display: flex;
+        flex-wrap: nowrap;
         overflow-x: auto;
-        padding: 10px 0;
+        padding: 10px 20px;
         gap: 10px;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
       }
 
-      .users-horizontal-scroll::-webkit-scrollbar {
-        display: none;
-      }
-
-      .users-horizontal-scroll .user-item {
+      .user-item {
         flex-direction: column;
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 10px;
-        padding: 8px;
-        min-width: 70px;
-        flex-shrink: 0;
-        text-align: center;
-        margin-right: 5px;
-      }
-
-      .chat-container {
-        height: auto;
-        flex-grow: 1;
-        overflow: hidden;
-      }
-
-      .chat-messages {
         padding: 10px;
-      }
-
-      .message-bubble {
-        padding: 8px 12px;
-        font-size: 14px;
-      }
-
-      .input-field {
-        font-size: 16px;
-        padding: 10px 42px 10px 15px;
+        min-width: 80px;
+        align-items: center;
       }
 
       .message {
-        max-width: 90%;
-      }
-
-      body.keyboard-open .chat-messages {
-        padding-bottom: 50px;
+        max-width: 85%;
       }
     }
   </style>
 </head>
 <body>
   <div class="app-container">
-    <div class="sidebar sidebar-collapsed" id="sidebar">
+    <div class="sidebar">
       <div class="sidebar-header">
         <div class="logo">Chat<span>Sync</span></div>
-        <button class="toggle-sidebar" id="toggle-sidebar">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 9L12 16L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
       </div>
       
       <div class="status-panel">
@@ -511,7 +419,7 @@
         <div class="user-list-header">
           Active Users <span class="user-count" id="user-count">0</span>
         </div>
-        <div id="users-container" class="users-horizontal-scroll">
+        <div id="users-container">
           <!-- User list will be populated here -->
         </div>
       </div>
@@ -551,7 +459,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
   <script>
     // DOM Elements
     const messagesContainer = document.getElementById('messages');
@@ -566,25 +474,14 @@
     const dbStatus = document.getElementById('db-status');
     const dbStatusText = document.getElementById('db-status-text');
     const typingIndicator = document.getElementById('typing-indicator');
-    const sidebar = document.getElementById('sidebar');
-    const toggleSidebar = document.getElementById('toggle-sidebar');
     
     // Connection and state variables
-    let socket;
+    const socket = io();
     let userName = "";
     let userColor = "";
     let users = [];
     let isTyping = false;
     let typingTimeout;
-    let sidebarExpanded = false;
-    
-    // Initialize Socket.io with error handling
-    try {
-      socket = io();
-    } catch (e) {
-      console.error("Failed to initialize Socket.io:", e);
-      updateConnectionStatus(backendStatus, backendStatusText, 'disconnected', 'Connection Error');
-    }
     
     // Random color generator for user avatars
     function getRandomColor() {
@@ -673,33 +570,10 @@
       sendButton.disabled = true;
     }
     
-    // Toggle sidebar expanded/collapsed state
-    function toggleSidebarState() {
-      sidebarExpanded = !sidebarExpanded;
-      
-      if (sidebarExpanded) {
-        sidebar.classList.remove('sidebar-collapsed');
-        sidebar.classList.add('expanded');
-        toggleSidebar.innerHTML = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 15L12 8L19 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        `;
-      } else {
-        sidebar.classList.add('sidebar-collapsed');
-        sidebar.classList.remove('expanded');
-        toggleSidebar.innerHTML = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 9L12 16L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        `;
-      }
-    }
-    
     // Send a message
     function sendMessage() {
       const message = messageInput.value.trim();
-      if (message && socket && socket.connected) {
+      if (message) {
         socket.emit('send_message', { sender: userName, message });
         messageInput.value = '';
         sendButton.disabled = true;
@@ -718,7 +592,6 @@
     
     // Escape HTML to prevent XSS
     function escapeHtml(unsafe) {
-      if (!unsafe) return '';
       return unsafe
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -727,104 +600,68 @@
         .replace(/'/g, "&#039;");
     }
 
-    // Handle mobile keyboard showing/hiding
-    function handleVisibilityChange() {
-      if (document.activeElement === messageInput) {
-        document.body.classList.add('keyboard-open');
-        scrollToBottom();
-      } else {
-        document.body.classList.remove('keyboard-open');
-      }
-    }
-
     // Socket event listeners
-    if (socket) {
-      socket.on('connect', () => {
-        updateConnectionStatus(backendStatus, backendStatusText, 'connected', 'Connected to Server');
-        enableChat();
-        // Rejoin chat if reconnecting
-        if (userName) {
-          socket.emit('join_chat');
-        }
+    socket.on('connect', () => {
+      updateConnectionStatus(backendStatus, backendStatusText, 'connected', 'Connected to Server');
+      enableChat();
+    });
+    
+    socket.on('disconnect', () => {
+      updateConnectionStatus(backendStatus, backendStatusText, 'disconnected', 'Disconnected from Server');
+      disableChat();
+    });
+    
+    socket.on('db_status', (status) => {
+      updateConnectionStatus(dbStatus, dbStatusText, status ? 'connected' : 'disconnected', 
+        status ? 'Database Connected' : 'Database Disconnected');
+    });
+    
+    socket.on('user_name', (name) => {
+      userName = name;
+      userColor = getRandomColor();
+      myUsername.textContent = userName;
+      myAvatar.textContent = generateAvatar(userName);
+      myAvatar.style.background = userColor;
+    });
+    
+    socket.on('receive_message', (data) => {
+      displayMessage(data);
+    });
+    
+    socket.on('previous_messages', (messages) => {
+      messagesContainer.innerHTML = '';
+      messages.forEach(msg => {
+        displayMessage(msg);
       });
-      
-      socket.on('connect_error', () => {
-        updateConnectionStatus(backendStatus, backendStatusText, 'disconnected', 'Connection Error');
-        disableChat();
-      });
-      
-      socket.on('disconnect', () => {
-        updateConnectionStatus(backendStatus, backendStatusText, 'disconnected', 'Disconnected from Server');
-        disableChat();
-      });
-      
-      socket.on('db_status', (status) => {
-        updateConnectionStatus(dbStatus, dbStatusText, status ? 'connected' : 'disconnected', 
-          status ? 'Database Connected' : 'Database Disconnected');
-      });
-      
-      socket.on('user_name', (name) => {
-        userName = name;
-        userColor = getRandomColor();
-        myUsername.textContent = userName;
-        myAvatar.textContent = generateAvatar(userName);
-        myAvatar.style.background = userColor;
-      });
-      
-      socket.on('receive_message', (data) => {
-        displayMessage(data);
-        // When new message arrives, collapse sidebar if it's expanded on mobile
-        if (sidebarExpanded && window.innerWidth <= 768) {
-          toggleSidebarState();
-        }
-      });
-      
-      socket.on('previous_messages', (messages) => {
-        messagesContainer.innerHTML = '';
-        if (Array.isArray(messages)) {
-          messages.forEach(msg => {
-            displayMessage(msg);
-          });
-        }
-        scrollToBottom();
-      });
-      
-      socket.on('users_list', (usersList) => {
-        if (Array.isArray(usersList)) {
-          users = usersList;
-          updateUserList();
-        }
-      });
-      
-      socket.on('client_count', (count) => {
-        userCount.textContent = count;
-      });
-      
-      socket.on('user_typing', (user) => {
-        if (user !== userName) {
-          typingIndicator.textContent = `${escapeHtml(user)} is typing...`;
-          typingIndicator.classList.add('active');
-          
-          setTimeout(() => {
-            typingIndicator.classList.remove('active');
-          }, 3000);
-        }
-      });
-      
-      socket.on('user_stop_typing', () => {
-        typingIndicator.classList.remove('active');
-      });
-    }
+      scrollToBottom();
+    });
+    
+    socket.on('users_list', (usersList) => {
+      users = usersList;
+      updateUserList();
+    });
+    
+    socket.on('client_count', (count) => {
+      userCount.textContent = count;
+    });
+    
+    socket.on('user_typing', (user) => {
+      if (user !== userName) {
+        typingIndicator.textContent = `${user} is typing...`;
+        typingIndicator.classList.add('active');
+        
+        setTimeout(() => {
+          typingIndicator.classList.remove('active');
+        }, 3000);
+      }
+    });
+    
+    socket.on('user_stop_typing', () => {
+      typingIndicator.classList.remove('active');
+    });
     
     // Event Listeners
     sendButton.addEventListener('click', sendMessage);
-    
-    // Fixed toggle sidebar functionality
-    toggleSidebar.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleSidebarState();
-    });
     
     messageInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
@@ -836,67 +673,22 @@
       sendButton.disabled = messageInput.value.trim() === '';
       
       // Handle typing indicator
-      if (!isTyping && messageInput.value.trim() !== '' && socket && socket.connected) {
+      if (!isTyping && messageInput.value.trim() !== '') {
         isTyping = true;
         socket.emit('typing');
       }
       
       clearTimeout(typingTimeout);
       typingTimeout = setTimeout(() => {
-        if (isTyping && socket && socket.connected) {
+        if (isTyping) {
           isTyping = false;
           socket.emit('stop_typing');
         }
       }, 2000);
     });
 
-    messageInput.addEventListener('focus', handleVisibilityChange);
-    messageInput.addEventListener('blur', handleVisibilityChange);
-
-    // Close sidebar when tapping on chat area on mobile
-    messagesContainer.addEventListener('click', () => {
-      if (sidebarExpanded && window.innerWidth <= 768) {
-        toggleSidebarState();
-      }
-    });
-
-    // Adjust layout when device orientation changes
-    window.addEventListener('resize', () => {
-      setTimeout(scrollToBottom, 100);
-    });
-
     // Initialize
-    if (socket) {
-      socket.emit('join_chat');
-    }
-
-    // Initial sidebar state
-    document.addEventListener('DOMContentLoaded', () => {
-      if (window.innerWidth <= 768) {
-        sidebar.classList.add('sidebar-collapsed');
-        sidebarExpanded = false;
-      } else {
-        sidebarExpanded = true;
-        toggleSidebarState();
-      }
-    });
-
-    // Handle page visibility changes (tab switching)
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && socket && !socket.connected) {
-        socket.connect();
-      }
-    });
-
-    // Make sure sidebar toggle button works correctly
-    window.addEventListener('load', () => {
-      sidebarExpanded = false;
-      if (window.innerWidth > 768) {
-        setTimeout(() => {
-          toggleSidebarState();
-        }, 100);
-      }
-    });
+    socket.emit('join_chat');
   </script>
 </body>
 </html>
